@@ -1,3 +1,12 @@
+<script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+</script>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -8,14 +17,7 @@
 <script>
   alert("El HTML ha cargado");
 </script>
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
-        }
-    </script>
+    
 
     <style>
         body { 
@@ -282,7 +284,14 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>eruda.init();</script>
+    <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+        alert("ERROR ENCONTRADO:\n" + message + "\nEn: " + source);
+        return false;
+    };
+    </script>
 </body>
 
 </html>
+
 
