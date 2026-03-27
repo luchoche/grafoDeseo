@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grafo del Deseo - Animación Correcta</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <style>
+        body { 
+            margin: 0; padding: 20px;
+            background-color: #ffffff;
+            display: flex; 
+            flex-direction: row; 
+            height: 100vh; width: 100vw;
+            overflow: hidden; /* BLOQUEA el scroll de la página */
+        }
+        #grafo-container { flex: 0 0 30%; position: relative; background: transparent; }
+
+        #three-container {
+            flex: 0 0 70%;
+            height: 100vh;
+            position: relative;
+            overflow: hidden; /* Esto es vital */
+            touch-action: none; /* Evita interferencias en móviles y trackpads */
+            background: transparent;
+        }
+
+        /* FIX: El canvas no debe tener margen para no crear scrollbars */
+        canvas { display: block; } 
+        
+        #piso1, #piso2, #circuito_U_imaginario, #circuito_U_deseo {
+            cursor: pointer; pointer-events: all;
+        }
+
+        svg { width: 90%; height: 90%; transform: rotateY(5deg); filter: drop-shadow(0 0 3px rgba(73, 173, 25, 0.4)); }
+
+        /* Efecto para los elementos VERDES (Pisos y vectores) */
+        #piso1:hover, #piso2:hover {
+            filter: drop-shadow(0 0 8px rgba(73, 173, 25, 0.8));
+            transform: scale(1.01); /* Un ligero pulso hacia adelante */
+        }
+
+        /* Efecto para los elementos AMARILLOS (Circuitos U) */
+        #circuito_U_imaginario:hover, #circuito_U_deseo:hover {
+            filter: drop-shadow(0 0 10px rgba(224, 224, 25, 0.9));
+            transform: scale(1.02);
+        }
+
+        /* Opcional: Oscurecer un poco lo que NO estás señalando */
+        svg:has(g:hover) g:not(:hover) {
+            opacity: 0.6;
+            transition: opacity 0.3s ease;
+        }
+
+        .oculto-inicio { opacity: 0; visibility: hidden; }
+
+        #ui {
+            position: absolute; top: 25px; left: 25px; 
+            padding: 15px; border-left: 4px solid #000;
+            background: rgba(255,255,255,0.9); color: #222;
+            pointer-events: none; text-transform: uppercase; font-size: 12px; letter-spacing: 1px;
+        }
+
+        b { color: #cc0000; }
+
+        #instruction {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-family: 'Courier New', Courier, monospace;
+            pointer-events: none;
+            user-select: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* --- ESTILOS DEL BOTÓN DE MICRÓFONO --- */
+        #btn-mic {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #ffffff;
+            border: 3px solid #000000;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            z-index: 1000; /* Asegura que esté por encima del canvas 3D */
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: all;
+        }
+
+        #btn-mic:hover {
+            transform: scale(1.1);
+        }
+
+        /* Estado Activo: Animación de latido rojo */
+        #btn-mic.grabando {
+            background-color: #ff0033;
+            border-color: #ff0033;
+            animation: latido 1.5s infinite;
+        }
+
+        @keyframes latido {
+            0% { transform: scale(1); box-shadow: 0 0 10px rgba(255,0,51,0.5); }
+            50% { transform: scale(1.15); box-shadow: 0 0 25px rgba(255,0,51,0.9); }
+            100% { transform: scale(1); box-shadow: 0 0 10px rgba(255,0,51,0.5); }
+        }
+    </style>
+
+</head>
+<body>
+
+<div id="grafo-container">
+
+    <svg viewBox="0 0 210 297" xmlns="http://www.w3.org/2000/svg">
+        
+        <g id="piso1">
+            <text id="txt_S" x="150" y="265" fill="#49ad19" font-size="14" class="oculto-inicio">&#42920</text>
+            <path id="vector_S_A" d="M 153,253 L 160,185" stroke="#49ad19" stroke-width="1.5" fill="none" class="oculto-inicio" />
+            
+            <path id="arco_inferior" d="M 12,187 C 66,150 142,150 193,188" stroke="#49ad19" stroke-width="2" fill="none" class="oculto-inicio" />
+            <path id="retro_significacion_1" d="M 155,172 C 130,140 70,140 58,172" stroke="#49ad19" stroke-width="1.5" fill="none" class="oculto-inicio" />
+            <path id="vector_IA" d="m 56,173 6.1,80" stroke="#49ad19" stroke-width="1.5" fill="none" class="oculto-inicio" />
+
+            <g id="nodo_A" transform="translate(155, 172)" class="oculto-inicio">
+                <circle cx="10" cy="0" r="14" fill="#ffffff" stroke="#49ad19" stroke-width="1.5" />
+                <text x="6" y="4" fill="#49ad19" font-size="10">A</text>
+            </g>
+            <g id="nodo_sA" transform="translate(48, 172)" class="oculto-inicio">
+                <circle cx="10" cy="0" r="14" fill="#ffffff" stroke="#49ad19" stroke-width="1.5" />
+                <text x="2" y="4" fill="#49ad19" font-size="10">s(A)</text>
+            </g>
+
+            <g id="circuito_U_imaginario" class="oculto-inicio">
+                <path id="path_U_1" d="m 151,236 c 0,0 0.9,-26.8 -9.5,-27 -23.3,-0.6 -44,-0.1 -72.5,-0.4 -10.2,-0.1 -10.4,27.9 -10.4,27.9 m 97.7,-54.2 c 0,0 -4.4,25.9 -15,26.2 -23.3,0.6 -44,0.1 -72.5,0.4 -10.2,0.1 -13.3,-17.9 -13.3,-17.9" stroke="#e0e019" stroke-width="2" fill="none" stroke-linecap="round" />
+                <text x="162" y="215" fill="#e0e019" font-size="9">i(a)</text>
+                <text x="38" y="212" fill="#e0e019" font-size="9">m</text>
+            </g>
+
+            <text id="txt_IA" x="55" y="272" fill="#49ad19" font-size="10" class="oculto-inicio">I(A)</text>
+        </g>
+
+        <g id="piso2">
+            <path id="vector_A_Pulsion" d="m 165,157 5.7,-67" stroke="#49ad19" stroke-width="1.5" fill="none" class="oculto-inicio" />
+            <path id="arco_superior" d="M 12,91 C 72,62 139,60 193,96" stroke="#49ad19" stroke-width="2" fill="none" class="oculto-inicio" />
+            <path id="retro_significacion_2" d="M 168,82 C 140,50 70,50 41,78" stroke="#49ad19" stroke-width="1.5" fill="none" class="oculto-inicio" />
+            <path id="vector_vuelta" d="m 46,90 6.2,62" stroke="#49ad19" stroke-width="1.5" fill="none" class="oculto-inicio" />
+
+            <g id="nodo_Pulsion" transform="translate(168, 82)" class="oculto-inicio">
+                <circle cx="10" cy="0" r="15" fill="#ffffff" stroke="#49ad19" stroke-width="1.5" />
+                <text x="-2" y="4" fill="#49ad19" font-size="9">&#42920 ◊ D</text>
+            </g>
+            <g id="nodo_falta" transform="translate(41, 78)" class="oculto-inicio">
+                <circle cx="0" cy="0" r="15" fill="#ffffff" stroke="#49ad19" stroke-width="1.5" />
+                <text x="-12" y="4" fill="#49ad19" font-size="10">S(A̸)</text>
+            </g>
+
+            <g id="circuito_U_deseo" class="oculto-inicio">
+                <path id="path_U_2" d="m 162,126 c 0,0 -10.3,-14.3 -20.8,-14.5 -23.3,-0.6 -44,-0.1 -72.5,-0.4 -10.2,-0.1 -20.5,19.7 -20.5,19.7 M 167,91 c 0,0 -15.3,19.5 -25.8,19.8 -23.3,0.6 -44,0.1 -72.5,0.4 -10.2,0.1 -23.7,-22.9 -23.7,-22.9" stroke="#e0e019" stroke-width="2" fill="none" stroke-linecap="round" />
+                <text x="170" y="116" fill="#e0e019" font-size="10">d</text>
+                <text x="20" y="123" fill="#e0e019" font-size="10">&#42920 ◊ a</text>
+            </g>
+        </g>
+
+    </svg>
+
+</div>
+
+<div id="three-container"></div>
+
+<button id="btn-mic" title="Hablar">🎙️</button>
+
+<script>
+    // Configuración de elementos
+    const paths = ["#vector_S_A", "#arco_inferior", "#retro_significacion_1", "#path_U_1", "#vector_IA", 
+                   "#vector_A_Pulsion", "#arco_superior", "#retro_significacion_2", "#path_U_2", "#vector_vuelta"];
+
+    // 1. PREPARACIÓN SILENCIOSA
+    // Calculamos los largos sin mostrar nada aún
+    paths.forEach(id => {
+        const el = document.querySelector(id);
+        if(el) {
+            const len = el.getTotalLength();
+            // Truco: strokeDasharray un poco más largo para evitar huecos en curvas cerradas
+            gsap.set(el, { strokeDasharray: len + 2, strokeDashoffset: len + 2 });
+        }
+    });
+
+    // Configuramos una velocidad base más dinámica
+    const dur = 0.4; // Duración base para nodos y textos
+    const durLine = 0.7; // Duración base para trazos largos
+
+    const tl = gsap.timeline({ 
+        defaults: { ease: "power2.out" } 
+    });
+
+    // --- PISO 1: El Ello y lo Imaginario ---
+    tl.to("#txt_S", { autoAlpha: 1, duration: dur })
+    .to("#vector_S_A", { autoAlpha: 1, strokeDashoffset: 0, duration: durLine }, "-=0.2")
+    .to("#nodo_A", { autoAlpha: 1, duration: dur }, "-=0.3")
+    
+    // 1. CADENA SIGNIFICANTE (Flujo más veloz)
+    .to("#arco_inferior", { autoAlpha: 1, strokeDashoffset: 0, duration: 0.8, ease: "none" }, "-=0.1")
+    
+    // 2. RETROACCIÓN (Sucede casi en paralelo al arco)
+    .to("#retro_significacion_1", { autoAlpha: 1, strokeDashoffset: 0, duration: 0.6 }, "-=0.5")
+    .to("#nodo_sA", { autoAlpha: 1, duration: dur }, "-=0.4")
+
+    // 3. CIRCUITO U IMAGINARIO (Más agresivo)
+    .to("#circuito_U_imaginario", { autoAlpha: 1, duration: 0.1 }) 
+    .to("#path_U_1", { strokeDashoffset: 0, duration: 1, ease: "power1.inOut" }, "<")
+    
+    .to("#vector_IA", { autoAlpha: 1, strokeDashoffset: 0, duration: durLine }, "-=0.4")
+    .to("#txt_IA", { autoAlpha: 1, duration: dur }, "-=0.3");
+
+    // --- PISO 2: El Deseo y la Pulsión ---
+    // Eliminamos el delay de 0.3 y lo solapamos con el final del Piso 1
+    tl.to("#vector_A_Pulsion", { autoAlpha: 1, strokeDashoffset: 0, duration: durLine }, "-=0.2")
+    .to("#nodo_Pulsion", { autoAlpha: 1, duration: dur }, "-=0.4")
+    
+    // 1. CADENA SUPERIOR
+    .to("#arco_superior", { autoAlpha: 1, strokeDashoffset: 0, duration: 0.8, ease: "none" }, "-=0.1")
+    
+    // 2. RETROACCIÓN SUPERIOR
+    .to("#retro_significacion_2", { autoAlpha: 1, strokeDashoffset: 0, duration: 0.6 }, "-=0.5")
+    .to("#nodo_falta", { autoAlpha: 1, duration: dur }, "-=0.4")
+    
+    // 3. CIRCUITO U DESEO
+    .to("#circuito_U_deseo", { autoAlpha: 1, duration: 0.1 })
+    .to("#path_U_2", { strokeDashoffset: 0, duration: 1, ease: "power1.inOut" }, "<")
+    
+    .to("#vector_vuelta", { autoAlpha: 1, strokeDashoffset: 0, duration: durLine }, "-=0.4");
+
+</script>
+
+<script type="module">
+    // Importamos las funciones de tus archivos externos
+    import { cargarEstructura1 } from './estructura1.js';
+    import { cargarEstructura2 } from './estructura2.js';
+    import { cargarEstructura3 } from './estructura3.js';
+
+    const container = document.getElementById('three-container');
+    let currentApp = null; // Guardará el renderer y la función stop
+
+    function limpiarContenedor() {
+        if (currentApp) {
+            try {
+                currentApp.stop(); // Detenemos animación y eventos
+                if (currentApp.renderer) {
+                    currentApp.renderer.dispose();
+                    currentApp.renderer.forceContextLoss();
+                }
+            } catch (e) { console.error("Error limpiando:", e); }
+        }
+        // Limpieza total del DOM
+        container.innerHTML = ''; 
+        currentApp = null;
+    }
+
+    // Eventos de Click en el SVG
+    // 2. Piso 1 (ESTRUCTURA 1)
+    const elementoPiso1 = document.getElementById('piso1');
+    if (elementoPiso1) {
+        elementoPiso1.onclick = () => {
+            // Este solo se activará si haces click en el piso pero FUERA del circuito
+            limpiarContenedor();
+            currentApp = cargarEstructura1(container);
+            console.log("Cargando Estructura 1 - Significantes");
+        };
+    }
+
+    document.getElementById('circuito_U_imaginario').onclick = (e) => {
+        e.stopPropagation(); // Detiene el click aquí y evita que llegue al "piso 1"
+        e.preventDefault();
+        limpiarContenedor();
+        currentApp = cargarEstructura3(container);
+    };
+
+    document.getElementById('circuito_U_deseo').onclick = (e) => {
+        e.preventDefault();
+        limpiarContenedor();
+        currentApp = cargarEstructura1(container);
+    };
+
+    // Ajuste de ventana (Resize)
+    window.addEventListener('resize', () => {
+        if (currentApp && currentApp.renderer) {
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            currentApp.camera.aspect = w / h;
+            currentApp.camera.updateProjectionMatrix();
+            currentApp.renderer.setSize(w, h);
+        }
+    });
+</script>
+
+</body>
+</html>
