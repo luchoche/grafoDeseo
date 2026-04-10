@@ -121,7 +121,7 @@ export function cargarEstructura3(container) {
     
     const concaveMirror = new THREE.Mesh(new THREE.SphereGeometry(2 * f, 32, 32, 0, Math.PI), new THREE.MeshPhongMaterial({ color: 0x0000ff, opacity: 0.3, transparent: true, side: THREE.BackSide }));
     concaveMirror.rotation.y = Math.PI;
-    concaveMirror.position.set(0, objBaseY, vertexZ - 0.5); 
+    concaveMirror.position.set(0, objBaseY, vertexZ + 1); 
     scene.add(concaveMirror);
 
     const vertexMarker = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
